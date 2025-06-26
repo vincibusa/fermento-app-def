@@ -14,7 +14,10 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.fermento.app"
+      "bundleIdentifier": "com.fermento.app",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "notification": {
       "icon": "./assets/logo.png",

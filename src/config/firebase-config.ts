@@ -2,15 +2,15 @@ import { initializeApp } from 'firebase/app';
 import { getDatabase } from 'firebase/database';
 
 const firebaseConfig = {
-    apiKey: "AIzaSyDVeHyE8kxoNxDyOZd14S2WU0PySB8J-gs",
-    authDomain: "fermento-vite.firebaseapp.com",
-    databaseURL: "https://fermento-vite-default-rtdb.europe-west1.firebasedatabase.app",
-    projectId: "fermento-vite",
-    storageBucket: "fermento-vite.firebasestorage.app",
-    messagingSenderId: "448006545185",
-    appId: "1:448006545185:web:d3e95e010038f607dee860",
-    measurementId: "G-C7VMT1ES0N"
-};
+    apiKey: "AIzaSyBJBJFAOSocvG0DhCMxlSfH8Zh_xTmghSg",
+    authDomain: "fermento-pizzeria.firebaseapp.com",
+    databaseURL: "https://fermento-pizzeria-default-rtdb.europe-west1.firebasedatabase.app",
+    projectId: "fermento-pizzeria",
+    storageBucket: "fermento-pizzeria.firebasestorage.app",
+    messagingSenderId: "122203791113",
+    appId: "1:122203791113:web:9b41f493a975b64c88bdd8",
+    measurementId: "G-EP7TTXCQY3"
+  };
 
 // Inizializza Firebase
 const app = initializeApp(firebaseConfig);
