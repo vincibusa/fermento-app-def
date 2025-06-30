@@ -1,13 +1,29 @@
 import React, { useState, useEffect } from 'react';
-import { View, FlatList, StyleSheet, TouchableOpacity, Text, Alert, Modal, Button, Platform } from 'react-native';
-import { format, addDays } from 'date-fns';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import {
+  View,
+  Text,
+  FlatList,
+  StyleSheet,
+  TouchableOpacity,
+  Alert,
+  Modal,
+  Platform,
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import { Reservation } from '../types';
-import { subscribeToReservations, deleteReservation, acceptReservation, rejectReservation, updateReservation } from '../services/ReservationService';
-import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { format, addDays } from 'date-fns';
 import { it } from 'date-fns/locale';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { Reservation } from '../types';
 import EditReservationModal from '../components/EditReservationModal';
+import {
+  subscribeToReservations,
+  deleteReservation,
+  acceptReservation,
+  rejectReservation,
+  updateReservation,
+} from '../services/ReservationServiceAPI';
 
 type Props = NativeStackScreenProps<any>;
 

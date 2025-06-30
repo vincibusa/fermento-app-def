@@ -1,12 +1,25 @@
 import React, { useState, useEffect } from 'react';
-import { View, ScrollView, StyleSheet, TouchableOpacity, Text, Switch, Alert, Modal, Platform } from 'react-native';
+import {
+  View,
+  ScrollView,
+  StyleSheet,
+  TouchableOpacity,
+  Text,
+  Switch,
+  Alert,
+  Modal,
+  Platform,
+} from 'react-native';
 import { format, addDays } from 'date-fns';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import { Shift, allTimes } from '../types';
-import { getShiftsForDate, updateShift, initializeShiftsForDate } from '../services/ReservationService';
+import { Shift } from '../types';
+import {
+  getShiftsForDate,
+  updateShift,
+  initializeShiftsForDate,
+} from '../services/ReservationServiceAPI';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { scheduleLocalNotification } from '../services/NotificationService';
 
 type Props = NativeStackScreenProps<any>;
 
