@@ -2,6 +2,7 @@ export interface Reservation {
     id?: string;
     fullName: string;
     phone: string;
+    countryCode: string;
     date: string;   // formato "YYYY-MM-DD"
     time: string;   // formato "HH:mm" (es. "19:00", "19:30", ecc.)
     seats: number;

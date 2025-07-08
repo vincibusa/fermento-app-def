@@ -19,6 +19,7 @@ import {
   updateReservation, 
   getShiftsForDate
 } from '../services/ReservationServiceAPI';
+import CountryCodePicker from './CountryCodePicker';
 
 interface EditReservationModalProps {
   visible: boolean;
@@ -35,6 +36,7 @@ const EditReservationModal: React.FC<EditReservationModalProps> = ({
 }) => {
   const [fullName, setFullName] = useState('');
   const [phone, setPhone] = useState('');
+  const [countryCode, setCountryCode] = useState('+39');
   const [email, setEmail] = useState('');
   const [date, setDate] = useState(new Date());
   const [time, setTime] = useState('19:00');
@@ -49,6 +51,7 @@ const EditReservationModal: React.FC<EditReservationModalProps> = ({
     if (reservation) {
       setFullName(reservation.fullName);
       setPhone(reservation.phone);
+      setCountryCode(reservation.countryCode || '+39');
       setEmail(reservation.email);
       setDate(new Date(reservation.date));
       setTime(reservation.time);
@@ -125,6 +128,7 @@ const EditReservationModal: React.FC<EditReservationModalProps> = ({
       const updatedData: Partial<Reservation> = {
         fullName: fullName.trim(),
         phone: phone.trim(),
+        countryCode: countryCode,
         email: email.trim(),
         date: format(date, 'yyyy-MM-dd'),
         time,
@@ -148,6 +152,7 @@ const EditReservationModal: React.FC<EditReservationModalProps> = ({
   const resetForm = () => {
     setFullName('');
     setPhone('');
+    setCountryCode('+39');
     setEmail('');
     setDate(new Date());
     setTime('19:00');
@@ -203,13 +208,19 @@ const EditReservationModal: React.FC<EditReservationModalProps> = ({
 
           <View style={styles.section}>
             <Text style={styles.label}>Telefono *</Text>
-            <TextInput
-              style={styles.input}
-              value={phone}
-              onChangeText={setPhone}
-              placeholder="Inserisci il numero di telefono"
-              keyboardType="phone-pad"
-            />
+            <View style={styles.phoneContainer}>
+              <CountryCodePicker
+                selectedCode={countryCode}
+                onSelect={setCountryCode}
+              />
+              <TextInput
+                style={[styles.input, styles.phoneInput]}
+                value={phone}
+                onChangeText={setPhone}
+                placeholder="Numero di telefono"
+                keyboardType="phone-pad"
+              />
+            </View>
           </View>
 
           <View style={styles.section}>
@@ -444,6 +455,14 @@ const styles = StyleSheet.create({
   modalButtonText: {
     fontWeight: 'bold',
     color: '#333',
+  },
+  phoneContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  phoneInput: {
+    flex: 1,
   },
 });
 

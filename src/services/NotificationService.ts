@@ -2,6 +2,7 @@ import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
 import { Alert, Platform } from 'react-native';
 import Constants from 'expo-constants';
+import PushNotificationAPI from './PushNotificationAPI';
 
 // Configura come le notifiche dovrebbero apparire quando l'app è in foreground
 Notifications.setNotificationHandler({
@@ -126,6 +127,19 @@ export async function registerForPushNotificationsAsync() {
     
     const token = pushTokenResponse.data;
     console.log('Expo push token:', token);
+    
+    // Registra il token con il backend
+    try {
+      const registrationResult = await PushNotificationAPI.registerPushToken(token);
+      if (registrationResult.success) {
+        console.log('✅ Push token registered with backend successfully');
+      } else {
+        console.error('❌ Failed to register push token with backend:', registrationResult.error);
+      }
+    } catch (backendError) {
+      console.error('❌ Error registering push token with backend:', backendError);
+      // Non bloccare il processo se il backend non è raggiungibile
+    }
     
     return token;
   } catch (error) {

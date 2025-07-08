@@ -163,7 +163,7 @@ const ReservationListScreen: React.FC<Props> = () => {
         <Text style={styles.cardSubtitle}>{reservation.time}</Text>
       </View>
       <View style={styles.cardContent}>
-        <Text style={styles.cardInfo}>Telefono: {reservation.phone}</Text>
+        <Text style={styles.cardInfo}>Telefono: {reservation.countryCode} {reservation.phone}</Text>
         <Text style={styles.cardInfo}>Email: {reservation.email}</Text>
         <Text style={styles.cardInfo}>Persone: {reservation.seats}</Text>
         {reservation.specialRequests && (

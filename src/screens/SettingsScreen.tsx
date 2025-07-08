@@ -22,6 +22,7 @@ import {
   initializeShiftsForDate,
   checkServerConnection,
 } from '../services/ReservationServiceAPI';
+
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 type Props = NativeStackScreenProps<any>;
@@ -119,6 +120,8 @@ const SettingsScreen: React.FC<Props> = () => {
       setIsRefreshing(false);
     }
   };
+
+
 
   return (
     <View style={styles.container}>
@@ -234,6 +237,8 @@ const SettingsScreen: React.FC<Props> = () => {
             </View>
           ))}
         </View>
+
+
       </ScrollView>
 
       {/* iOS DatePicker Modal */}
@@ -448,6 +453,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#333',
   },
+
 });
 
 export default SettingsScreen; 

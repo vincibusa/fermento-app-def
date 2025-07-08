@@ -1,7 +1,7 @@
 // Configurazione dell'ambiente per l'app mobile
 export const API_CONFIG = {
   development: {
-    baseURL: 'https://fermento-backend--fermento-pizzeria.europe-west4.hosted.app/api',
+    baseURL: 'http://localhost:8080/api',
     timeout: 10000,
   },
   production: {

@@ -13,6 +13,7 @@ export interface ApiReservation {
   id?: string;
   fullName: string;
   phone: string;
+  countryCode: string;
   email: string;
   date: string;
   time: string;
@@ -272,6 +273,53 @@ class ApiService {
   // Server connection check
   async checkServerConnection(): Promise<boolean> {
     return await this.healthCheck();
+  }
+
+  // Metodi per push notifications
+  async registerPushToken(data: {
+    token: string;
+    deviceId: string;
+    platform: 'ios' | 'android';
+    userId?: string;
+  }): Promise<ApiResponse> {
+    return await this.request('/push/register', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async unregisterPushToken(deviceId: string): Promise<ApiResponse> {
+    return await this.request(`/push/unregister/${deviceId}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async getActivePushTokens(): Promise<ApiResponse<{
+    tokens: Array<{
+      deviceId: string;
+      platform: string;
+      userId?: string;
+      createdAt: string;
+      lastUsed: string;
+    }>;
+    total: number;
+  }>> {
+    return await this.request('/push/tokens');
+  }
+
+  async sendTestNotification(data: {
+    title: string;
+    body: string;
+    deviceId?: string;
+  }): Promise<ApiResponse<{
+    successful: number;
+    failed: number;
+    total: number;
+  }>> {
+    return await this.request('/push/test', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
   }
 }
 
