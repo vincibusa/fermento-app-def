@@ -8,6 +8,8 @@ import {
   Alert,
   Modal,
   Platform,
+  RefreshControl,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -23,6 +25,7 @@ import {
   acceptReservation,
   rejectReservation,
   updateReservation,
+  checkServerConnection,
 } from '../services/ReservationServiceAPI';
 
 type Props = NativeStackScreenProps<any>;
@@ -35,6 +38,12 @@ const ReservationListScreen: React.FC<Props> = () => {
   const [showAndroidDatePicker, setShowAndroidDatePicker] = useState(false);
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [selectedReservation, setSelectedReservation] = useState<Reservation | null>(null);
+  
+  // Nuovi stati per la gestione del refresh
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [connectionStatus, setConnectionStatus] = useState<'connected' | 'disconnected' | 'checking'>('checking');
+  const [lastUpdateTime, setLastUpdateTime] = useState<Date | null>(null);
 
   useEffect(() => {
     const unsubscribe = subscribeToReservations((newReservations) => {
@@ -42,10 +51,48 @@ const ReservationListScreen: React.FC<Props> = () => {
         (res) => res.date === selectedDate
       );
       setReservations(filteredReservations);
+      setIsLoading(false);
+      setConnectionStatus('connected');
+      setLastUpdateTime(new Date());
     });
 
     return () => unsubscribe();
   }, [selectedDate]);
+
+  // Funzione per refresh manuale
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    try {
+      setConnectionStatus('checking');
+      const isConnected = await checkServerConnection();
+      if (isConnected) {
+        setConnectionStatus('connected');
+        setLastUpdateTime(new Date());
+        showToast('success', 'Dati aggiornati con successo');
+      } else {
+        setConnectionStatus('disconnected');
+        showToast('error', 'Impossibile connettersi al server');
+      }
+    } catch (error) {
+      setConnectionStatus('disconnected');
+      showToast('error', 'Errore durante l\'aggiornamento');
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
+  // Funzione per verificare la connessione
+  const checkConnection = async () => {
+    setConnectionStatus('checking');
+    try {
+      const isConnected = await checkServerConnection();
+      setConnectionStatus(isConnected ? 'connected' : 'disconnected');
+      return isConnected;
+    } catch (error) {
+      setConnectionStatus('disconnected');
+      return false;
+    }
+  };
 
   const handleDelete = async (reservation: Reservation) => {
     try {
@@ -198,6 +245,51 @@ const ReservationListScreen: React.FC<Props> = () => {
 
   const ListHeader = () => (
     <View style={styles.header}>
+      {/* Status Bar di connessione */}
+      <View style={styles.statusBar}>
+        <View style={styles.connectionStatus}>
+          <MaterialCommunityIcons 
+            name={
+              connectionStatus === 'connected' ? 'wifi' : 
+              connectionStatus === 'disconnected' ? 'wifi-off' : 
+              'wifi-sync'
+            } 
+            size={16} 
+            color={
+              connectionStatus === 'connected' ? '#4caf50' : 
+              connectionStatus === 'disconnected' ? '#f44336' : 
+              '#ff9800'
+            } 
+          />
+          <Text style={[
+            styles.statusText,
+            { color: connectionStatus === 'connected' ? '#4caf50' : 
+                     connectionStatus === 'disconnected' ? '#f44336' : '#ff9800' }
+          ]}>
+            {connectionStatus === 'connected' ? 'Connesso' : 
+             connectionStatus === 'disconnected' ? 'Disconnesso' : 'Controllo...'}
+          </Text>
+          {lastUpdateTime && (
+            <Text style={styles.lastUpdateText}>
+              {format(lastUpdateTime, 'HH:mm:ss')}
+            </Text>
+          )}
+        </View>
+        
+        {/* Pulsante di refresh manuale */}
+        <TouchableOpacity
+          style={styles.refreshButton}
+          onPress={handleRefresh}
+          disabled={isRefreshing}
+        >
+          {isRefreshing ? (
+            <ActivityIndicator size="small" color="#2962ff" />
+          ) : (
+            <MaterialCommunityIcons name="refresh" size={20} color="#2962ff" />
+          )}
+        </TouchableOpacity>
+      </View>
+
       <View style={styles.dateSelector}>
         <TouchableOpacity style={styles.dateButton} onPress={() => handleQuickDateSelect(0)}>
           <Text style={[styles.dateButtonText, selectedDate === format(new Date(), 'yyyy-MM-dd') && styles.activeDateText]}>
@@ -233,6 +325,12 @@ const ReservationListScreen: React.FC<Props> = () => {
           </View>
         }
         contentContainerStyle={styles.listContent}
+        refreshControl={
+          <RefreshControl
+            refreshing={isRefreshing}
+            onRefresh={handleRefresh}
+          />
+        }
       />
       
       {selectedReservation && (
@@ -405,9 +503,32 @@ const styles = StyleSheet.create({
     marginRight: 8,
   },
   statusText: {
-    fontSize: 14,
-    color: '#333',
-    fontWeight: '600',
+    fontSize: 12,
+    marginLeft: 6,
+    fontWeight: '500',
+  },
+  statusBar: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+  },
+  connectionStatus: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  lastUpdateText: {
+    fontSize: 10,
+    color: '#999',
+    marginLeft: 8,
+  },
+  refreshButton: {
+    padding: 8,
+    borderRadius: 8,
+    backgroundColor: '#f0f4f8',
   },
   cardActionsContainer: {
     marginTop: 8,

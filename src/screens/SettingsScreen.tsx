@@ -9,6 +9,8 @@ import {
   Alert,
   Modal,
   Platform,
+  RefreshControl,
+  ActivityIndicator,
 } from 'react-native';
 import { format, addDays } from 'date-fns';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -18,6 +20,7 @@ import {
   getShiftsForDate,
   updateShift,
   initializeShiftsForDate,
+  checkServerConnection,
 } from '../services/ReservationServiceAPI';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
@@ -30,6 +33,11 @@ const SettingsScreen: React.FC<Props> = () => {
   const [isDatePickerVisible, setDatePickerVisible] = useState(false);
   const [datePickerDate, setDatePickerDate] = useState(new Date());
   const [showAndroidDatePicker, setShowAndroidDatePicker] = useState(false);
+  
+  // Nuovi stati per la gestione del refresh
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [connectionStatus, setConnectionStatus] = useState<'connected' | 'disconnected' | 'checking'>('checking');
+  const [lastUpdateTime, setLastUpdateTime] = useState<Date | null>(null);
 
   useEffect(() => {
     loadShifts();
@@ -38,13 +46,18 @@ const SettingsScreen: React.FC<Props> = () => {
   const loadShifts = async () => {
     try {
       setLoading(true);
+      setConnectionStatus('checking');
+      
       let shiftsData = await getShiftsForDate(selectedDate);
       if (shiftsData.length === 0) {
         await initializeShiftsForDate(selectedDate);
         shiftsData = await getShiftsForDate(selectedDate);
       }
       setShifts(shiftsData);
+      setConnectionStatus('connected');
+      setLastUpdateTime(new Date());
     } catch (error) {
+      setConnectionStatus('disconnected');
       showToast('error', 'Errore nel caricamento dei turni');
     } finally {
       setLoading(false);
@@ -94,10 +107,69 @@ const SettingsScreen: React.FC<Props> = () => {
     setShowAndroidDatePicker(false);
   };
 
+  // Funzione per refresh manuale
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    try {
+      await loadShifts();
+      showToast('success', 'Dati aggiornati con successo');
+    } catch (error) {
+      showToast('error', 'Errore durante l\'aggiornamento');
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.headerText}>Gestione Turni</Text>
+        
+        {/* Status Bar di connessione */}
+        <View style={styles.statusBar}>
+          <View style={styles.connectionStatus}>
+            <MaterialCommunityIcons 
+              name={
+                connectionStatus === 'connected' ? 'wifi' : 
+                connectionStatus === 'disconnected' ? 'wifi-off' : 
+                'wifi-sync'
+              } 
+              size={16} 
+              color={
+                connectionStatus === 'connected' ? '#4caf50' : 
+                connectionStatus === 'disconnected' ? '#f44336' : 
+                '#ff9800'
+              } 
+            />
+            <Text style={[
+              styles.statusText,
+              { color: connectionStatus === 'connected' ? '#4caf50' : 
+                       connectionStatus === 'disconnected' ? '#f44336' : '#ff9800' }
+            ]}>
+              {connectionStatus === 'connected' ? 'Connesso' : 
+               connectionStatus === 'disconnected' ? 'Disconnesso' : 'Controllo...'}
+            </Text>
+            {lastUpdateTime && (
+              <Text style={styles.lastUpdateText}>
+                {format(lastUpdateTime, 'HH:mm:ss')}
+              </Text>
+            )}
+          </View>
+          
+          {/* Pulsante di refresh manuale */}
+          <TouchableOpacity
+            style={styles.refreshButton}
+            onPress={handleRefresh}
+            disabled={isRefreshing}
+          >
+            {isRefreshing ? (
+              <ActivityIndicator size="small" color="#2962ff" />
+            ) : (
+              <MaterialCommunityIcons name="refresh" size={20} color="#2962ff" />
+            )}
+          </TouchableOpacity>
+        </View>
+
         <View style={styles.dateSelector}>
           <TouchableOpacity 
             style={styles.dateButton} 
@@ -133,7 +205,15 @@ const SettingsScreen: React.FC<Props> = () => {
         </View>
       </View>
 
-      <ScrollView style={styles.scrollView}>
+      <ScrollView 
+        style={styles.scrollView}
+        refreshControl={
+          <RefreshControl
+            refreshing={isRefreshing}
+            onRefresh={handleRefresh}
+          />
+        }
+      >
         <View style={styles.shiftsContainer}>
           {shifts.map((shift) => (
             <View key={shift.time} style={styles.shiftItem}>
@@ -235,6 +315,34 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     marginBottom: 16,
     color: '#191919',
+  },
+  statusBar: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+  },
+  connectionStatus: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  statusText: {
+    fontSize: 12,
+    marginLeft: 6,
+    fontWeight: '500',
+  },
+  lastUpdateText: {
+    fontSize: 10,
+    color: '#999',
+    marginLeft: 8,
+  },
+  refreshButton: {
+    padding: 8,
+    borderRadius: 8,
+    backgroundColor: '#f0f4f8',
   },
   dateSelector: {
     flexDirection: 'row',

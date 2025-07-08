@@ -3,6 +3,36 @@ import { Reservation, Shift } from '../types';
 import { scheduleLocalNotification } from './NotificationService';
 import { format } from 'date-fns';
 
+// Set per tracciare le notifiche già mostrate
+let globalProcessedNotifications = new Set<string>();
+
+// Funzione di retry per operazioni critiche
+const retryOperation = async <T>(
+  operation: () => Promise<T>,
+  maxRetries: number = 3,
+  delay: number = 1000
+): Promise<T> => {
+  let lastError: Error;
+  
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      return await operation();
+    } catch (error) {
+      lastError = error as Error;
+      console.warn(`🔄 Retry ${attempt}/${maxRetries} failed:`, error);
+      
+      if (attempt === maxRetries) {
+        throw lastError;
+      }
+      
+      // Attesa progressiva: 1s, 2s, 3s...
+      await new Promise(resolve => setTimeout(resolve, delay * attempt));
+    }
+  }
+  
+  throw lastError!;
+};
+
 // Funzioni di conversione tra tipi API e tipi locali
 const convertFromApiReservation = (apiReservation: ApiReservation): Reservation => {
   return {
@@ -38,9 +68,6 @@ const convertFromApiShift = (apiShift: ApiShift): Shift => {
     maxReservations: apiShift.maxReservations,
   };
 };
-
-// Set per tracciare le notifiche già mostrate
-let globalProcessedNotifications = new Set<string>();
 
 export const initializeShiftsForDate = async (date: string): Promise<void> => {
   try {
@@ -101,24 +128,30 @@ export const subscribeToReservations = (
 ): (() => void) => {
   // Usa il nuovo sistema di polling migliorato dall'ApiService
   const unsubscribe = ApiService.subscribeToReservations((apiReservations) => {
-    const reservations = apiReservations.map(convertFromApiReservation);
-    
-    // Controlla nuove prenotazioni per le notifiche
-    reservations.forEach(reservation => {
-      if (
-        reservation.id &&
-        reservation.status === 'pending' &&
-        !globalProcessedNotifications.has(reservation.id)
-      ) {
-        globalProcessedNotifications.add(reservation.id);
-        scheduleLocalNotification(
-          'Nuova Prenotazione',
-          `Nuova prenotazione da ${reservation.fullName} per ${reservation.seats} persone il ${reservation.date} alle ${reservation.time}`
-        );
-      }
-    });
+    try {
+      const reservations = apiReservations.map(convertFromApiReservation);
+      
+      // Controlla nuove prenotazioni per le notifiche
+      reservations.forEach(reservation => {
+        if (
+          reservation.id &&
+          reservation.status === 'pending' &&
+          !globalProcessedNotifications.has(reservation.id)
+        ) {
+          globalProcessedNotifications.add(reservation.id);
+          scheduleLocalNotification(
+            'Nuova Prenotazione',
+            `Nuova prenotazione da ${reservation.fullName} per ${reservation.seats} persone il ${reservation.date} alle ${reservation.time}`
+          );
+        }
+      });
 
-    callback(reservations);
+      callback(reservations);
+    } catch (error) {
+      console.error('Error processing reservations:', error);
+      // Continuiamo comunque a chiamare il callback con un array vuoto
+      callback([]);
+    }
   });
 
   return unsubscribe;
@@ -126,26 +159,30 @@ export const subscribeToReservations = (
 
 export const updateReservation = async (key: string, reservation: Reservation): Promise<void> => {
   try {
-    const updates = convertToApiReservation(reservation);
-    const response = await ApiService.updateReservation(key, updates);
-    
-    if (!response.success) {
-      throw new Error(response.error || 'Failed to update reservation');
-    }
+    await retryOperation(async () => {
+      const updates = convertToApiReservation(reservation);
+      const response = await ApiService.updateReservation(key, updates);
+      
+      if (!response.success) {
+        throw new Error(response.error || 'Failed to update reservation');
+      }
+    });
   } catch (error) {
-    console.error('Error updating reservation:', error);
+    console.error('Error updating reservation after retries:', error);
     throw error;
   }
 };
 
 export const deleteReservation = async (key: string): Promise<void> => {
   try {
-    const response = await ApiService.deleteReservation(key);
-    if (!response.success) {
-      throw new Error(response.error || 'Failed to delete reservation');
-    }
+    await retryOperation(async () => {
+      const response = await ApiService.deleteReservation(key);
+      if (!response.success) {
+        throw new Error(response.error || 'Failed to delete reservation');
+      }
+    });
   } catch (error) {
-    console.error('Error deleting reservation:', error);
+    console.error('Error deleting reservation after retries:', error);
     throw error;
   }
 };

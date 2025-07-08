@@ -67,17 +67,43 @@ class ApiService {
       ...options,
     };
 
+    // Aggiungi timeout alla richiesta
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), currentConfig.timeout || 10000);
+    
+    config.signal = controller.signal;
+
     try {
+      console.log(`🔄 API Request: ${options.method || 'GET'} ${url}`);
+      
       const response = await fetch(url, config);
+      clearTimeout(timeoutId);
+      
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || `HTTP error! status: ${response.status}`);
+        console.error(`❌ API Error (${response.status}):`, data.error || data.message);
+        throw new Error(data.error || data.message || `HTTP error! status: ${response.status}`);
       }
 
+      console.log(`✅ API Success: ${options.method || 'GET'} ${url}`);
       return data;
     } catch (error) {
-      console.error('API request failed:', error);
+      clearTimeout(timeoutId);
+      
+      if (error instanceof Error) {
+        if (error.name === 'AbortError') {
+          console.error('⏰ Request timeout:', url);
+          throw new Error('Richiesta scaduta. Controlla la connessione internet.');
+        }
+        
+        if (error.message.includes('fetch')) {
+          console.error('🌐 Network error:', url);
+          throw new Error('Errore di connessione. Controlla la connessione internet.');
+        }
+      }
+      
+      console.error('💥 API request failed:', error);
       throw error;
     }
   }
